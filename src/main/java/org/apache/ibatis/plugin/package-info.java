@@ -15,5 +15,10 @@
  */
 /**
  * Base package for handing plugins.
+ *
+ * 在该模块中主要使用了两种设计模式：代理模式和责任链模式。
+ * 插件模块使用的代理模式是通过 JDK 动态代理实现的
+ *
+ * MyBatis 插件模块中最核心的接口就是 Interceptor 接口，它是所有 MyBatis 插件必须要实现的接口
  */
 package org.apache.ibatis.plugin;
