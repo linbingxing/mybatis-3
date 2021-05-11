@@ -32,7 +32,7 @@ import org.apache.ibatis.mapping.ResultSetType;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 
-/**
+/** 不带参数，执行sql语句
  * @author Clinton Begin
  */
 public class SimpleStatementHandler extends BaseStatementHandler {
@@ -70,8 +70,11 @@ public class SimpleStatementHandler extends BaseStatementHandler {
 
   @Override
   public <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException {
+    // 获取SQL语句
     String sql = boundSql.getSql();
+    // 执行SQL语句
     statement.execute(sql);
+    // 处理ResultSet映射，得到结果对象
     return resultSetHandler.handleResultSets(statement);
   }
 

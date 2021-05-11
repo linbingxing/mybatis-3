@@ -37,6 +37,7 @@ public class TransactionalCacheManager {
   }
 
   public void putObject(Cache cache, CacheKey key, Object value) {
+
     getTransactionalCache(cache).putObject(key, value);
   }
 

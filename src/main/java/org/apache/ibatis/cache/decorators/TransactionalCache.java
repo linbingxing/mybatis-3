@@ -24,7 +24,7 @@ import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.logging.LogFactory;
 
-/**
+/** 用来记录一个事务中添加到二级缓存中的缓存。
  * The 2nd level cache transactional buffer.
  * <p>
  * This class holds all cache entries that are to be added to the 2nd level cache during a Session.
@@ -66,6 +66,10 @@ public class TransactionalCache implements Cache {
     // issue #116
     Object object = delegate.getObject(key);
     if (object == null) {
+      //???  为啥记录未命中缓存的 CacheKey 呢
+      // CacheBuilder 默认会添加 BlockingCache 这个装饰器，
+      // 而 BlockingCache 的 getObject() 方法会有给 CacheKey 加锁的逻辑，需要在 putObject() 方法或 removeObject() 方法中解锁，
+      // 否则这个 CacheKey 会被一直锁住，无法使用。
       entriesMissedInCache.add(key);
     }
     // issue #146
@@ -78,6 +82,7 @@ public class TransactionalCache implements Cache {
 
   @Override
   public void putObject(Object key, Object object) {
+    // 将数据暂存到entriesToAddOnCommit集合
     entriesToAddOnCommit.put(key, object);
   }
 
@@ -113,6 +118,7 @@ public class TransactionalCache implements Cache {
 
   private void flushPendingEntries() {
     for (Map.Entry<Object, Object> entry : entriesToAddOnCommit.entrySet()) {
+      // 将entriesToAddOnCommit集合中的数据添加到二级缓存
       delegate.putObject(entry.getKey(), entry.getValue());
     }
     for (Object entry : entriesMissedInCache) {

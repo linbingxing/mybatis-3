@@ -29,7 +29,7 @@ import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 
-/**
+/** 路由选择 策略模式
  * @author Clinton Begin
  */
 public class RoutingStatementHandler implements StatementHandler {
@@ -37,15 +37,18 @@ public class RoutingStatementHandler implements StatementHandler {
   private final StatementHandler delegate;
 
   public RoutingStatementHandler(Executor executor, MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
-
+    // 下面就是根据MappedStatement的配置，生成一个相应的StatementHandler对象，并设置到delegate字段中维护
     switch (ms.getStatementType()) {
       case STATEMENT:
+        // 创建SimpleStatementHandler对象
         delegate = new SimpleStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
         break;
       case PREPARED:
+        // 创建PreparedStatementHandler对象
         delegate = new PreparedStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
         break;
       case CALLABLE:
+        // 创建CallableStatementHandler对象 存储过程
         delegate = new CallableStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
         break;
       default:

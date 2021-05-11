@@ -28,7 +28,7 @@ public class BatchResult {
   private final MappedStatement mappedStatement;
   private final String sql;
   private final List<Object> parameterObjects;
-
+  //记录关联 Statement 对象执行批处理的结果。
   private int[] updateCounts;
 
   public BatchResult(MappedStatement mappedStatement, String sql) {

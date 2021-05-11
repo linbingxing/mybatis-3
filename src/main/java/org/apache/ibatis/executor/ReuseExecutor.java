@@ -34,6 +34,8 @@ import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.transaction.Transaction;
 
 /**
+ * 实现了重用 Statement 的优化
+ *
  * @author Clinton Begin
  */
 public class ReuseExecutor extends BaseExecutor {
@@ -70,9 +72,11 @@ public class ReuseExecutor extends BaseExecutor {
 
   @Override
   public List<BatchResult> doFlushStatements(boolean isRollback) {
+    // 关闭statementMap集合中缓存的全部Statement对象
     for (Statement stmt : statementMap.values()) {
       closeStatement(stmt);
     }
+    // 清空statementMap集合
     statementMap.clear();
     return Collections.emptyList();
   }

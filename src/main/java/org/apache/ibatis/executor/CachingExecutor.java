@@ -33,6 +33,7 @@ import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.transaction.Transaction;
 
 /**
+ * Executor 装饰器实现，会在其他 Executor 的基础之上添加二级缓存的相关功能
  * @author Clinton Begin
  * @author Eduardo Macarron
  */
@@ -84,28 +85,39 @@ public class CachingExecutor implements Executor {
 
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler) throws SQLException {
+    // 获取BoundSql对象
     BoundSql boundSql = ms.getBoundSql(parameterObject);
+    // 创建相应的CacheKey
     CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);
+    // 调用下面的query()方法重载
     return query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
 
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)
       throws SQLException {
+    // 获取该命名空间使用的二级缓存
     Cache cache = ms.getCache();
+    // 是否开启了二级缓存功能
     if (cache != null) {
+      // 根据<select>标签配置决定是否需要清空二级缓存
       flushCacheIfRequired(ms);
+      // 检测useCache配置以及是否使用了resultHandler配置
       if (ms.isUseCache() && resultHandler == null) {
+        // 是否包含输出参数
         ensureNoOutParams(ms, boundSql);
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings("unchecked")  // 查询二级缓存
         List<E> list = (List<E>) tcm.getObject(cache, key);
         if (list == null) {
+          // 二级缓存未命中，通过被装饰的Executor对象查询结果对象
           list = delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+          // 将查询结果放入TransactionalCache.entriesToAddOnCommit集合中暂存
           tcm.putObject(cache, key, list); // issue #578 and #116
         }
         return list;
       }
     }
+    // 如果未开启二级缓存，直接通过被装饰的Executor对象查询结果对象
     return delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
 
