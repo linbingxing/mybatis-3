@@ -49,16 +49,18 @@ import org.apache.ibatis.util.MapUtil;
  * @author Clinton Begin
  */
 public class Reflector {
-
+  //封装的 Class 类型
   private final Class<?> type;
+  //可读属性的名称集合
   private final String[] readablePropertyNames;
+  //可写属性的名称集合
   private final String[] writablePropertyNames;
   private final Map<String, Invoker> setMethods = new HashMap<>();
   private final Map<String, Invoker> getMethods = new HashMap<>();
   private final Map<String, Class<?>> setTypes = new HashMap<>();
   private final Map<String, Class<?>> getTypes = new HashMap<>();
   private Constructor<?> defaultConstructor;
-
+  //所有属性名称的集合，记录到这个集合中的属性名称都是大写的
   private Map<String, String> caseInsensitivePropertyMap = new HashMap<>();
 
   public Reflector(Class<?> clazz) {
@@ -66,6 +68,7 @@ public class Reflector {
     addDefaultConstructor(clazz);
     addGetMethods(clazz);
     addSetMethods(clazz);
+
     addFields(clazz);
     readablePropertyNames = getMethods.keySet().toArray(new String[0]);
     writablePropertyNames = setMethods.keySet().toArray(new String[0]);
@@ -91,6 +94,7 @@ public class Reflector {
     resolveGetterConflicts(conflictingGetters);
   }
 
+  //解决方法签名冲突,比较 getter 方法的返回值，优先选择返回值为子类的 getter 方法
   private void resolveGetterConflicts(Map<String, List<Method>> conflictingGetters) {
     for (Entry<String, List<Method>> entry : conflictingGetters.entrySet()) {
       Method winner = null;
@@ -222,7 +226,7 @@ public class Reflector {
     }
     return result;
   }
-
+  //读取 Class 中没有 getter/setter 方法的字段，生成对应的 Invoker 对象，填充 getMethods 集合、getTypes 集合以及 setMethods 集合、setTypes 集合
   private void addFields(Class<?> clazz) {
     Field[] fields = clazz.getDeclaredFields();
     for (Field field : fields) {
@@ -308,6 +312,7 @@ public class Reflector {
     }
   }
 
+  //返回值类型#方法名称:参数类型列表
   private String getSignature(Method method) {
     StringBuilder sb = new StringBuilder();
     Class<?> returnType = method.getReturnType();
