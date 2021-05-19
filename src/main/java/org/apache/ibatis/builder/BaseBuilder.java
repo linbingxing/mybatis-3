@@ -33,7 +33,9 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
  */
 public abstract class BaseBuilder {
   protected final Configuration configuration;
+  //别名注册中心
   protected final TypeAliasRegistry typeAliasRegistry;
+  // TypeHandler 注册中心
   protected final TypeHandlerRegistry typeHandlerRegistry;
 
   public BaseBuilder(Configuration configuration) {
@@ -132,6 +134,7 @@ public abstract class BaseBuilder {
     return resolveTypeHandler(javaType, typeHandlerType);
   }
 
+  //解析 TypeHandler
   protected TypeHandler<?> resolveTypeHandler(Class<?> javaType, Class<? extends TypeHandler<?>> typeHandlerType) {
     if (typeHandlerType == null) {
       return null;
@@ -145,6 +148,7 @@ public abstract class BaseBuilder {
     return handler;
   }
 
+  // 解析别名
   protected <T> Class<? extends T> resolveAlias(String alias) {
     return typeAliasRegistry.resolveAlias(alias);
   }

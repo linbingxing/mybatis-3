@@ -53,9 +53,14 @@ import org.apache.ibatis.type.JdbcType;
  */
 public class XMLConfigBuilder extends BaseBuilder {
 
+  //状态标识字段，记录当前 XMLConfigBuilder 对象是否已经成功解析完 mybatis-config.xml 配置文件
   private boolean parsed;
+  //  XML 解析器，
   private final XPathParser parser;
+  //  标签定义的环境名称
   private String environment;
+
+  //实现对 Reflector 对象的创建和缓存。
   private final ReflectorFactory localReflectorFactory = new DefaultReflectorFactory();
 
   public XMLConfigBuilder(Reader reader) {
@@ -159,8 +164,11 @@ public class XMLConfigBuilder extends BaseBuilder {
 
   private void typeAliasesElement(XNode parent) {
     if (parent != null) {
+      // 处理全部<typeHandler>子标签
       for (XNode child : parent.getChildren()) {
         if ("package".equals(child.getName())) {
+          // 如果指定了package属性，则扫描指定包中所有的类，
+          // 并解析@MappedTypes注解，完成TypeHandler的注册
           String typeAliasPackage = child.getStringAttribute("name");
           configuration.getTypeAliasRegistry().registerAliases(typeAliasPackage);
         } else {
@@ -184,21 +192,31 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void pluginElement(XNode parent) throws Exception {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
+        // 获取每个<plugin>标签中的interceptor属性
         String interceptor = child.getStringAttribute("interceptor");
+        // 获取<plugin>标签下的其他配置信息
         Properties properties = child.getChildrenAsProperties();
+        // 初始化interceptor属性指定的自定义插件
         Interceptor interceptorInstance = (Interceptor) resolveClass(interceptor).getDeclaredConstructor().newInstance();
+        // 初始化插件的配置
         interceptorInstance.setProperties(properties);
+        // 将Interceptor对象添加到Configuration的插件链中保存，等待后续使用
         configuration.addInterceptor(interceptorInstance);
       }
     }
   }
 
+  // 加载自定义 ObjectFactory 实现类的功能
   private void objectFactoryElement(XNode context) throws Exception {
     if (context != null) {
+      // 获取<objectFactory>标签的type属性
       String type = context.getStringAttribute("type");
+      // 根据type属性值，初始化自定义的ObjectFactory实现
       Properties properties = context.getChildrenAsProperties();
       ObjectFactory factory = (ObjectFactory) resolveClass(type).getDeclaredConstructor().newInstance();
+      // 初始化ObjectFactory对象的配置
       factory.setProperties(properties);
+      // 将ObjectFactory对象记录到Configuration这个全局配置对象中
       configuration.setObjectFactory(factory);
     }
   }
@@ -272,20 +290,27 @@ public class XMLConfigBuilder extends BaseBuilder {
     configuration.setDefaultSqlProviderType(resolveClass(props.getProperty("defaultSqlProviderType")));
   }
 
+  //不同的环境添加不同的配置
   private void environmentsElement(XNode context) throws Exception {
     if (context != null) {
       if (environment == null) {
+        // 未指定使用的环境id，默认获取default值
         environment = context.getStringAttribute("default");
       }
+      // 获取<environment>标签下的所有配置
       for (XNode child : context.getChildren()) {
+        // 获取环境id
         String id = child.getStringAttribute("id");
         if (isSpecifiedEnvironment(id)) {
+          // 获取<transactionManager>、<dataSource>等标签，并进行解析，其中会根据配置信息初始化相应的TransactionFactory对象和DataSource对象
           TransactionFactory txFactory = transactionManagerElement(child.evalNode("transactionManager"));
           DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));
           DataSource dataSource = dsFactory.getDataSource();
+          // 创建Environment对象，并关联创建好的TransactionFactory和DataSource
           Environment.Builder environmentBuilder = new Environment.Builder(id)
               .transactionFactory(txFactory)
               .dataSource(dataSource);
+          // 将Environment对象记录到Configuration中，等待后续使用
           configuration.setEnvironment(environmentBuilder.build());
           break;
         }
@@ -301,12 +326,14 @@ public class XMLConfigBuilder extends BaseBuilder {
       if ("VENDOR".equals(type)) {
         type = "DB_VENDOR";
       }
+      // 初始化DatabaseIdProvider
       Properties properties = context.getChildrenAsProperties();
       databaseIdProvider = (DatabaseIdProvider) resolveClass(type).getDeclaredConstructor().newInstance();
       databaseIdProvider.setProperties(properties);
     }
     Environment environment = configuration.getEnvironment();
     if (environment != null && databaseIdProvider != null) {
+      // 通过DataSource获取DatabaseId，并保存到Configuration中，等待后续使用
       String databaseId = databaseIdProvider.getDatabaseId(environment.getDataSource());
       configuration.setDatabaseId(databaseId);
     }
@@ -363,14 +390,19 @@ public class XMLConfigBuilder extends BaseBuilder {
 
   private void mapperElement(XNode parent) throws Exception {
     if (parent != null) {
+      // 遍历每个子标签
       for (XNode child : parent.getChildren()) {
         if ("package".equals(child.getName())) {
+          // 如果指定了<package>子标签，则会扫描指定包内全部Java类型
           String mapperPackage = child.getStringAttribute("name");
           configuration.addMappers(mapperPackage);
         } else {
+          // 解析<mapper>子标签，这里会获取resource、url、class三个属性，这三个属性互斥
           String resource = child.getStringAttribute("resource");
           String url = child.getStringAttribute("url");
           String mapperClass = child.getStringAttribute("class");
+          // 如果<mapper>子标签指定了resource或是url属性，都会创建XMLMapperBuilder对象，
+          // 然后使用这个XMLMapperBuilder实例解析指定的Mapper.xml配置文件
           if (resource != null && url == null && mapperClass == null) {
             ErrorContext.instance().resource(resource);
             try(InputStream inputStream = Resources.getResourceAsStream(resource)) {
@@ -384,6 +416,7 @@ public class XMLConfigBuilder extends BaseBuilder {
               mapperParser.parse();
             }
           } else if (resource == null && url == null && mapperClass != null) {
+            // 如果<mapper>子标签指定了class属性，则向MapperRegistry注册class属性指定的Mapper接口
             Class<?> mapperInterface = Resources.classForName(mapperClass);
             configuration.addMapper(mapperInterface);
           } else {
